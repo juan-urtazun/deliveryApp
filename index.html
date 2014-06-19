@@ -1,0 +1,280 @@
+﻿<!DOCTYPE html>
+
+<html data-ng-app="myDeliveryApp">
+<head>
+  <meta chaset="utf-8">
+
+  <title>Delivery App</title>
+
+  <link href="Content/bootstrap.flatly.theme.min.css" rel="stylesheet" />
+  <link href="Content/customCss.css" rel="stylesheet" />
+
+</head>
+<body >
+
+  <div   ng-include src="'navBar.html'"></div>
+
+  <div class="container col-md-12">
+   <div ng-view></div>
+ </div>
+
+ <script src="Scripts/angular.min.js"></script>
+ <script src="Scripts/angular.route.min.js"></script>
+ <script src="Scripts/angular.ng_animate.js"></script>
+ <script src="Scripts/ui-bootstrap-tpls-0.10.0.min.js"></script>
+ <script src="Scripts/underscore-min.js"></script>
+ <script src="Scripts/angular-underscore.js"></script>
+ <script src="Scripts/angular-custom-ui-bootstrap-templates.js"></script>
+ <script src="Scripts/angular-show-errors-min.js"></script>
+
+ <script src="app/deliveryApp.js"></script>    <!-- App libs -->
+ <script src="app/controllers/controllers.js"></script>
+ <script src="app/services/deliveriesService.js"></script>
+ <script src="app/services/cartService.js"></script>
+ <script src="app/filters/filters.js"></script>
+
+
+<!-- Definicion de partials
+navBar.html
+deliveries.html
+delivery.html
+products.html
+cart.html
+makeOrder.html
+cartAsJson.html
+-->
+
+ <script type="text/ng-template" id="navBar.html">
+  <div role="navigation" class="navbar navbar-default navbar-static-top">
+    <span class="col-md-1"></span><a href="#" class="navbar-brand">Delivery Online</a>
+
+    <div class="container">
+      <div class="btn-group  btn-group-sm pull-right with-padding-top" data-ng-controller="NavbarController">
+        <button type="button" class="btn progress-nav btn-default ng-class: {'btn-success progress-nav-active':getClass('/deliveries')};"  > 1- Elegí tu Delivery </button>
+        <button type="button" class="btn progress-nav btn-default ng-class: {'btn-success progress-nav-active':getClass('/delivery')};" > 2- Realiza tu pedido </button>
+        <button type="button" class="btn progress-nav btn-default ng-class: {'btn-success progress-nav-active':getClass('/makeOrderForDelivery')};" > 3- Completa tus datos </button>
+      </div>
+    </div>
+    <span class="col-md-1"></span>
+  </div>
+</script>
+
+
+
+
+
+<script type="text/ng-template" id="deliveries.html">
+
+  <h3 class="idented-left">Filtros:</h3>
+
+  <div class="well col-md-12">
+    <div class="form-group col-md-4">
+      <label for="exampleInputEmail1">Nombre:</label>
+      <input type="text" class="form-control" ng-model="filter.commercialName" placeholder="Nombre">
+    </div>
+
+    <div class="form-group col-md-4">
+      <label for="exampleInputEmail1">Descripci&oacute;n</label>
+      <input type="text" class="form-control" ng-model="filter.description" placeholder="Descripci&oacute;n">
+    </div>
+  </div>
+
+  <h3 class="idented-left">Deliveries:</h3>
+
+  <div class="col-md-12 cardContainer" >
+
+    <div class="span3 card pull-left" data-ng-repeat="delivery in deliveries | byNameOrDescription:{name: filter.commercialName, description: filter.description} | orderBy:'name'">
+      <div class="cardHeader">{{delivery.name}}</div>
+      <div class="cardBody">{{delivery.description}}</div>
+      <a href="#/delivery/{{delivery.id}}" class="cardBody btn-link">Realizar pedido</a>
+    </div>
+  </div>
+
+
+</script>
+
+<script type="text/ng-template" id="delivery.html">
+
+<h3 class="idented-left">Realiza tu pedido</h3>
+
+<div class="row">
+
+  <div class="col-md-6">
+    <div class="tabbable tabs-left">
+      <tabset  type="navType" >
+        <tab heading="{{menu.name}}"  data-ng-repeat="menu in delivery.menues">
+          <div class="col-md-9" ng-include src="'products.html'"> </div>
+        </tab>
+      </tabset>
+    </div>
+  </div>
+
+  <div class="col-md-6" ng-include src="'cart.html'"></div>
+
+  <div class="col-md-11 pull-right">
+    <div class="col-md-8"></div>
+      <div class="col-md-4 pull-right">
+        <a href="#/deliveries"class="btn btn-primary ">Atras</a>
+        <a href="#/makeOrderForDelivery/{{delivery.id}}" ng-click="cleanEmptyOrders();" class="btn btn-primary" ng-disabled="hideNext()">Continuar
+          </a>
+      </div>
+  </div>
+</div>
+
+</script>
+
+<script type="text/ng-template" id="products.html">
+    <table class="table  table-hover table-striped table-bordered">
+    <thead>
+      <tr></tr>
+    </thead>
+    <tbody>
+      <tr ng-repeat="product in menu.products">
+        <td> {{product.name}}</td>
+        <td> {{product.price | currency}}</td>
+        <td>
+          <a href="" tooltip="{{product.description}}" class="btn btn-info  btn-xs">
+            <span class="glyphicon glyphicon-info-sign"></span>
+          </a>
+
+          <a href="" ng-model="product" ng-click="addProductToCart(product)" class="btn btn-success btn-xs">
+            <span class="glyphicon  glyphicon glyphicon-plus-sign"></span>
+          </a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</script>
+
+<script type="text/ng-template" id="cart.html">
+  <div>
+    <table class="table table-condensed table-hover table-striped table-bordered" ng-show="orders.length" >
+      <thead>
+        <tr>
+          <td>Producto</td>
+          <td>Cantidad</td>
+          <td>Precio Unitario</td>
+          <td>Total</td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="order in orders">
+          <td>
+            <a href="" ng-model="product" ng-click="deleteOrderInCart(order)" class="btn btn-danger btn-xs">
+              <span class="glyphicon  glyphicon-remove-circle">  </span>
+            </a>
+            {{order.product.name}}
+          </td>
+          <td >
+            <div class="col-xs-7">
+              <input type="number" ng-change="changeCantProductInCart(order.cant, order)" ng-model="order.cant" class="form-control input-sm">
+            </div>
+          </td>
+          <td> {{order.product.price | currency}}</td>
+          <td> {{order.subtotal | currency}}</td>
+        </tr>
+        <tr>
+          <td colspan=""></td>
+          <td colspan=""></td>
+          <td colspan=""></td>
+          <td colspan="">{{total | currency}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</script>
+
+
+<script type="text/ng-template" id="makeOrder.html">
+
+<h3 class="idented-left">Completa tus datos</h3>
+
+<div class="row">
+  <div class="col-md-6">
+
+    <form  name="userForm" class="form-horizontal well" role="form">
+      <div class="form-group with-padding-left" show-errors>
+        <label for="input1" class="col-lg-2 custom-label">  Nombre </label>
+        <div class="col-lg-10">
+          <input type="text" name="userName" ng-model="user.name" required  class="form-control " placeholder="nombre">
+          <span class="error text-danger" ng-show="userForm.userName.$dirty && userForm.userName.$error.required">
+            Complete el nombre.
+          </span>
+        </div>
+      </div>
+
+      <div class="form-group  with-padding-left" show-errors>
+        <label for="input2" class="col-lg-2 custom-label">Apellido</label>
+        <div class="col-lg-10">
+          <input type="text" name="userLastName" ng-model="user.lastName" required class="form-control" placeholder="apellido">
+          <span class="error text-danger" ng-show="userForm.userLastName.$dirty && userForm.userLastName.$error.required">
+            Complete el Apellido.
+          </span>
+        </div>
+      </div>
+
+      <div class="form-group  with-padding-left" show-errors>
+        <label for="input2" class="col-lg-2 custom-label">Direcci&oacute;n</label>
+        <div class="col-lg-10">
+          <input type="text" name="userAddress" ng-model="user.address" required  class="form-control"  placeholder="direcci&oacute;n">
+          <span class="error text-danger" ng-show="userForm.userAddress.$dirty && userForm.userAddress.$error.required">
+            Complete la direcci&oacute;n.
+          </span>
+        </div>
+      </div>
+
+      <div   class="form-group  with-padding-left" show-errors>
+        <label for="input2" class="col-lg-2 custom-label">Tel&eacute;fono</label>
+        <div class="col-lg-10">
+          <input type="text" name="userPhone" ng-model="user.phone" required  class="form-control"  placeholder="tel&eacute;fono">
+          <span class="error text-danger" ng-show="userForm.userPhone.$dirty && userForm.userPhone.$error.required">
+            Complete el tel&eacute;fono.
+          </span>
+        </div>
+      </div>
+
+      <div   class="form-group  with-padding-left" show-errors>
+        <label for="input2" class="col-lg-2 custom-label"> Email </label>
+        <div class="col-lg-10">
+          <input type="email" name="userEmail" ng-model="user.email" required  class="form-control" id="input2" placeholder="email">
+          <span class="error text-danger" ng-show="(userForm.userEmail.$dirty) && !userForm.userEmail.$valid">
+            Complete el email.(juan@juan.com)
+          </span>
+        </div>
+      </div>
+
+    </form>
+
+  </div> <!-- <div.col-md-6/> -->
+
+  <div class="col-md-6" ng-include src="'cart.html'"></div>
+
+  <div class="col-md-11 pull-right">
+    <div class="col-md-8"></div>
+    <div class="col-md-4 pull-right">
+      <a href="#/delivery/{{delivery.id}}" ng-click="cleanEmptyOrders();" class="btn btn-primary">Atras</a>
+      <a  ng-controller="ModalController" ng-disabled="!(userForm.$valid && !hideNext())" class="btn btn-primary" ng-click="open();">Realizar Pedido</a>
+    </div>
+  </div>
+</div><!-- <div.row/> -->
+
+</script>
+
+<script type="text/ng-template" id="cartAsJson.html">
+
+  <div class="modal-header" >
+    <button type="button" class="close" data-dismiss="modal" ng-click="cancel()" aria-hidden="true">&times;</button>
+    <h4 class="modal-title">Detalle de su orden.</h4>
+  </div>
+  <div class="modal-body" >
+    {{orderPackage || json}}
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-warning" ng-click="cancel()">Cerrar</button>
+  </div>
+
+</script>
+
+
+</body>
+</html>
